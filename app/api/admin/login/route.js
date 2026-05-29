@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { verifyAdmin, createSessionToken } from '@/lib/auth';
+import { verifyAdmin, generateAdminToken } from '@/lib/auth';
 
 export async function POST(request) {
   try {
@@ -13,20 +13,14 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Username atau password salah' }, { status: 401 });
     }
 
-    const token = createSessionToken();
+    const token = generateAdminToken();
 
-    // Set cookie yang aman
-    const response = NextResponse.json({ success: true, message: 'Login berhasil' });
-    response.cookies.set('admin_session', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24, // 24 jam
-      path: '/'
+    return NextResponse.json({
+      success: true,
+      token,
+      user: username,
     });
-
-    return response;
-  } catch (err) {
-    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

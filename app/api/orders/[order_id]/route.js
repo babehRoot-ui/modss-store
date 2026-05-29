@@ -13,22 +13,28 @@ export async function GET(request, { params }) {
       const payStatus = payResult?.data?.status || payResult?.status;
       if (payStatus === 'paid' || payStatus === 'success' || payStatus === 'settlement') {
         // Update status ke paid
-        const { data: updated } = await supabaseAdmin.from('orders').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('order_id', params.order_id).select().single();
+        await supabaseAdmin.from('orders').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('order_id', params.order_id);
         await supabaseAdmin.from('transactions').update({ status: 'paid', raw_response: payResult }).eq('order_id', params.order_id);
 
+        // Fetch product untuk tau kategori
+        const { data: product } = await supabaseAdmin.from('products').select('category').eq('id', order.product_id).single();
+        const category = product?.category || 'script';
+
         // Trigger delivery
-        if (updated) {
-          try {
-            const deliveryRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL.replace('/supabase', '') || ''}/api/delivery/${getCategoryEndpoint(updated)}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ order_id: updated.order_id })
-            });
-            // Tidak perlu wait, biarkan async
-          } catch (delErr) {
-            console.error('Delivery trigger error:', delErr.message);
-          }
+        try {
+          const baseUrl = request.headers.get('host') || '';
+          const protocol = request.headers.get('x-forwarded-proto') || 'https';
+          await fetch(`${protocol}://${baseUrl}/api/delivery/${category}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order_id: params.order_id })
+          });
+        } catch (delErr) {
+          console.error('Delivery trigger error:', delErr.message);
         }
+
+        // Re-fetch order yang sudah di-update
+        const { data: updated } = await supabaseAdmin.from('orders').select('*').eq('order_id', params.order_id).single();
         return NextResponse.json({ order: updated || order });
       }
     } catch (err) {
@@ -39,12 +45,19 @@ export async function GET(request, { params }) {
   // Jika status paid tapi belum delivered, trigger delivery
   if (order.status === 'paid' && !order.delivery_data) {
     try {
-      await fetch(`/api/delivery/${getCategoryEndpoint(order)}`, {
+      const { data: product } = await supabaseAdmin.from('products').select('category').eq('id', order.product_id).single();
+      const category = product?.category || 'script';
+      const baseUrl = request.headers.get('host') || '';
+      const protocol = request.headers.get('x-forwarded-proto') || 'https';
+      await fetch(`${protocol}://${baseUrl}/api/delivery/${category}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_id: order.order_id })
+        body: JSON.stringify({ order_id: params.order_id })
       });
-    } catch {}
+    } catch (delErr) {
+      console.error('Retry delivery error:', delErr.message);
+    }
+
     // Re-fetch
     const { data: refreshed } = await supabaseAdmin.from('orders').select('*').eq('order_id', params.order_id).single();
     if (refreshed) return NextResponse.json({ order: refreshed });
@@ -58,10 +71,4 @@ export async function PUT(request, { params }) {
   const { data, error } = await supabaseAdmin.from('orders').update(body).eq('order_id', params.order_id).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ order: data });
-}
-
-function getCategoryEndpoint(order) {
-  // Perlu fetch product category
-  // Simplified: cek dari product info yang ada
-  return 'script'; // fallback, akan di-handle oleh delivery routes
 }

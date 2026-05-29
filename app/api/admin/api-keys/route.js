@@ -1,68 +1,72 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
-import { verifySessionToken } from '@/lib/auth';
-
-// Middleware sederhana - cek session
-async function checkAuth(request) {
-  const token = request.cookies.get('admin_session')?.value;
-  if (!token || !verifySessionToken(token)) {
-    return false;
-  }
-  return true;
-}
+import { getApiKeys, createApiKey, deleteApiKey } from '@/lib/supabase';
+import { verifyAdminToken } from '@/lib/auth';
 
 export async function GET(request) {
-  if (!(await checkAuth(request))) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  try {
+    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    if (!token || !verifyAdminToken(token)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-  const { data, error } = await supabaseAdmin.from('api_keys').select('*').order('created_at', { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ keys: data });
+    const { searchParams } = new URL(request.url);
+    const type = searchParams.get('type') || null;
+    const keys = await getApiKeys(type);
+    return NextResponse.json(keys);
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
 
 export async function POST(request) {
-  if (!(await checkAuth(request))) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
-    const body = await request.json();
-    const { type, name, api_key, client_token, domain, config } = body;
-
-    if (!name || !api_key || !type) {
-      return NextResponse.json({ error: 'Name, API Key, dan Type wajib diisi' }, { status: 400 });
+    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    if (!token || !verifyAdminToken(token)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data, error } = await supabaseAdmin.from('api_keys').insert({
-      type,
-      name,
-      api_key,
-      client_token: client_token || null,
-      domain: domain || null,
-      config: config || {}
-    }).select().single();
+    const body = await request.json();
+    const { type, name, api_key, client_token, domain } = body;
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ key: data }, { status: 201 });
-  } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    if (!type || !api_key) {
+      return NextResponse.json({ error: 'Type dan API Key wajib diisi' }, { status: 400 });
+    }
+
+    if (!['do', 'pterodactyl'].includes(type)) {
+      return NextResponse.json({ error: 'Type tidak valid (do/pterodactyl)' }, { status: 400 });
+    }
+
+    const key = await createApiKey({
+      type,
+      name: name || type,
+      api_key,
+      client_token: type === 'pterodactyl' ? (client_token || null) : null,
+      domain: type === 'pterodactyl' ? (domain || null) : null,
+      is_active: true,
+    });
+
+    return NextResponse.json(key, { status: 201 });
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
 export async function DELETE(request) {
-  if (!(await checkAuth(request))) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
-    const { id } = await request.json();
-    if (!id) return NextResponse.json({ error: 'ID wajib diisi' }, { status: 400 });
+    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    if (!token || !verifyAdminToken(token)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    const { error } = await supabaseAdmin.from('api_keys').delete().eq('id', id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    if (!id) {
+      return NextResponse.json({ error: 'ID diperlukan' }, { status: 400 });
+    }
+
+    await deleteApiKey(id);
     return NextResponse.json({ success: true });
-  } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

@@ -51,16 +51,22 @@ body {
   .btn-primary {
     @apply bg-gradient-to-r from-accent-blue to-accent-cyan text-white font-semibold px-6 py-2.5 rounded-lg
     transition-all duration-300 hover:shadow-lg hover:shadow-accent-blue/25 hover:scale-[1.02] active:scale-[0.98];
+    position: relative;
+    overflow: hidden;
   }
 
   .btn-secondary {
     @apply bg-dark-500 text-gray-300 font-medium px-6 py-2.5 rounded-lg border border-dark-400/50
     transition-all duration-300 hover:bg-dark-400 hover:text-white;
+    position: relative;
+    overflow: hidden;
   }
 
   .btn-danger {
     @apply bg-red-600/20 text-red-400 font-medium px-4 py-2 rounded-lg border border-red-500/30
     transition-all duration-300 hover:bg-red-600/30;
+    position: relative;
+    overflow: hidden;
   }
 
   .input-dark {
@@ -153,6 +159,26 @@ body {
   animation-play-state: paused;
 }
 
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Marquee reverse */
+.marquee-reverse .marquee-content {
+  animation-name: marquee-reverse;
+}
+
+@keyframes marquee-reverse {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0%); }
+}
+
+/* Marquee slow */
+.marquee-slow .marquee-content {
+  animation-duration: 40s;
+}
+
 /* Efek glow untuk card produk */
 .product-card-glow {
   position: relative;
@@ -228,3 +254,307 @@ body {
 .polling-indicator {
   animation: polling-pulse 2s ease-in-out infinite;
 }
+
+/* ============================================================
+   TAMBAHAN BARU: FREEZE / ES EFFECT SAAT BUTTON DITEKAN
+   ============================================================ */
+.btn-primary::after,
+.btn-secondary::after,
+.btn-danger::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--freeze-x, 50%) var(--freeze-y, 50%),
+    rgba(200, 230, 255, 0.5) 0%,
+    rgba(150, 200, 255, 0.3) 30%,
+    transparent 70%);
+  opacity: 0;
+  transition: opacity 0.1s ease;
+  pointer-events: none;
+  z-index: 10;
+  border-radius: inherit;
+}
+
+.btn-primary.freezing::after,
+.btn-secondary.freezing::after,
+.btn-danger.freezing::after {
+  opacity: 1;
+  animation: freeze-flash 0.6s ease-out forwards;
+}
+
+.btn-primary.freezing,
+.btn-secondary.freezing,
+.btn-danger.freezing {
+  animation: freeze-shake 0.4s ease-out;
+  filter: brightness(1.3) saturate(0.5);
+}
+
+@keyframes freeze-flash {
+  0% { opacity: 0.9; }
+  30% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes freeze-shake {
+  0% { transform: scale(0.96); }
+  15% { transform: scale(0.97) translateX(-1px); }
+  30% { transform: scale(0.98) translateX(1px); }
+  50% { transform: scale(0.99) translateX(-0.5px); }
+  70% { transform: scale(0.995) translateX(0.5px); }
+  100% { transform: scale(1); filter: brightness(1) saturate(1); }
+}
+
+/* ============================================================
+   TAMBAHAN BARU: BINTANG JATUH / KUNANG-KUNANG
+   ============================================================ */
+.firefly-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.firefly {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #fde68a;
+  box-shadow: 
+    0 0 6px 2px rgba(253, 230, 138, 0.6),
+    0 0 12px 4px rgba(253, 230, 138, 0.3),
+    0 0 20px 6px rgba(253, 230, 138, 0.1);
+  animation: firefly-fall linear infinite, firefly-glow ease-in-out infinite;
+  opacity: 0;
+}
+
+.firefly.blue {
+  background: #93c5fd;
+  box-shadow: 
+    0 0 6px 2px rgba(147, 197, 253, 0.6),
+    0 0 12px 4px rgba(147, 197, 253, 0.3),
+    0 0 20px 6px rgba(147, 197, 253, 0.1);
+}
+
+.firefly.cyan {
+  background: #67e8f9;
+  box-shadow: 
+    0 0 6px 2px rgba(103, 232, 249, 0.6),
+    0 0 12px 4px rgba(103, 232, 249, 0.3),
+    0 0 20px 6px rgba(103, 232, 249, 0.1);
+}
+
+.firefly.purple {
+  background: #c4b5fd;
+  box-shadow: 
+    0 0 6px 2px rgba(196, 181, 253, 0.6),
+    0 0 12px 4px rgba(196, 181, 253, 0.3),
+    0 0 20px 6px rgba(196, 181, 253, 0.1);
+}
+
+.firefly.white {
+  background: #ffffff;
+  box-shadow: 
+    0 0 4px 1px rgba(255, 255, 255, 0.8),
+    0 0 10px 3px rgba(255, 255, 255, 0.4),
+    0 0 16px 5px rgba(255, 255, 255, 0.15);
+}
+
+@keyframes firefly-fall {
+  0% {
+    transform: translateY(-20px) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  25% {
+    transform: translateY(25vh) translateX(40px) rotate(90deg);
+  }
+  50% {
+    transform: translateY(50vh) translateX(-30px) rotate(180deg);
+    opacity: 0.8;
+  }
+  75% {
+    transform: translateY(75vh) translateX(50px) rotate(270deg);
+  }
+  95% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(105vh) translateX(-20px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes firefly-glow {
+  0%, 100% { 
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  25% { 
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  50% { 
+    opacity: 0.6;
+    transform: scale(0.9);
+  }
+  75% { 
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+/* ============================================================
+   TAMBAHAN BARU: HERO LANDING EFFECTS
+   ============================================================ */
+.hero-float {
+  animation: hero-float 6s ease-in-out infinite;
+}
+
+@keyframes hero-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.landing-gradient-text {
+  background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 40%, #8b5cf6 70%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% auto;
+  animation: gradient-shift 4s ease-in-out infinite;
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.landing-badge-glow {
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.2), 0 0 30px rgba(59, 130, 246, 0.1);
+}
+
+.orbit-ring {
+  border: 1px solid rgba(59,130,246,0.1);
+  border-radius: 50%;
+  position: absolute;
+  animation: orbit-pulse 4s ease-in-out infinite;
+}
+
+.orbit-ring:nth-child(2) {
+  animation-delay: -1.3s;
+  border-color: rgba(139,92,246,0.1);
+}
+
+.orbit-ring:nth-child(3) {
+  animation-delay: -2.6s;
+  border-color: rgba(6,182,212,0.1);
+}
+
+@keyframes orbit-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+
+.orbit-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3b82f6;
+  box-shadow: 0 0 10px rgba(59,130,246,0.8);
+  animation: orbit-dot-move 6s linear infinite;
+}
+
+@keyframes orbit-dot-move {
+  0% { transform: rotate(0deg) translateX(var(--orbit-r, 120px)) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(var(--orbit-r, 120px)) rotate(-360deg); }
+}
+
+.scroll-indicator {
+  animation: scroll-bounce 2s ease-in-out infinite;
+}
+
+@keyframes scroll-bounce {
+  0%, 100% { transform: translateY(0); opacity: 1; }
+  50% { transform: translateY(8px); opacity: 0.5; }
+}
+
+.banner-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.banner-shine::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+  animation: banner-shine-move 4s ease-in-out infinite;
+}
+
+@keyframes banner-shine-move {
+  0% { left: -100%; }
+  50% { left: 100%; }
+  100% { left: 100%; }
+}
+
+.hero-shimmer {
+  background: linear-gradient(110deg, transparent 25%, rgba(255,255,255,0.03) 37%, transparent 63%);
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.products-enter {
+  animation: products-reveal 0.6s ease-out;
+}
+
+@keyframes products-reveal {
+  0% { opacity: 0; transform: translateY(40px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.reveal-section {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.reveal-section.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.filter-active {
+  box-shadow: 0 0 15px rgba(59,130,246,0.4), 0 0 30px rgba(59,130,246,0.15);
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes slideUp {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s ease-out;
+  }

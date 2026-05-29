@@ -406,7 +406,7 @@ export default function HomePage() {
                 {[
                   { key: 'all', label: 'Semua', icon: '🌟' },
                   { key: 'panel', label: 'Pterodactyl Panel', icon: '🖥️' },
-                  { key: 'script', label: 'Script Digital', icon: '📄' },
+                  { key: 'script', label: 'Script Digital', icon: '🧩' },
                   { key: 'vps', label: 'VPS DigitalOcean', icon: '🌐' },
                 ].map(f => (
                   <FreezeButton

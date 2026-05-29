@@ -20,19 +20,23 @@
   scrollbar-color: #333 #0a0a0a;
 }
 
-*::-webkit-scrollbar { width: 6px; }
-*::-webkit-scrollbar-track { background: #0a0a0a; }
-*::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+*::-webkit-scrollbar {
+  width: 6px;
+}
 
-html {
-  scroll-behavior: smooth;
+*::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 3px;
 }
 
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  overflow-x: hidden;
 }
 
 @layer components {
@@ -47,22 +51,16 @@ body {
   .btn-primary {
     @apply bg-gradient-to-r from-accent-blue to-accent-cyan text-white font-semibold px-6 py-2.5 rounded-lg
     transition-all duration-300 hover:shadow-lg hover:shadow-accent-blue/25 hover:scale-[1.02] active:scale-[0.98];
-    position: relative;
-    overflow: hidden;
   }
 
   .btn-secondary {
     @apply bg-dark-500 text-gray-300 font-medium px-6 py-2.5 rounded-lg border border-dark-400/50
     transition-all duration-300 hover:bg-dark-400 hover:text-white;
-    position: relative;
-    overflow: hidden;
   }
 
   .btn-danger {
     @apply bg-red-600/20 text-red-400 font-medium px-4 py-2 rounded-lg border border-red-500/30
     transition-all duration-300 hover:bg-red-600/30;
-    position: relative;
-    overflow: hidden;
   }
 
   .input-dark {
@@ -71,15 +69,27 @@ body {
     transition-all duration-200;
   }
 
-  .badge { @apply text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider; }
-  .badge-sale { @apply badge bg-red-500/20 text-red-400 border border-red-500/30; }
-  .badge-hot { @apply badge bg-orange-500/20 text-orange-400 border border-orange-500/30; }
-  .badge-new { @apply badge bg-green-500/20 text-green-400 border border-green-500/30; }
+  .badge {
+    @apply text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider;
+  }
+
+  .badge-sale {
+    @apply badge bg-red-500/20 text-red-400 border border-red-500/30;
+  }
+
+  .badge-hot {
+    @apply badge bg-orange-500/20 text-orange-400 border border-orange-500/30;
+  }
+
+  .badge-new {
+    @apply badge bg-green-500/20 text-green-400 border border-green-500/30;
+  }
 
   .sidebar-link {
     @apply flex items-center gap-3 px-4 py-2.5 rounded-lg text-gray-400 transition-all duration-200
     hover:bg-dark-600 hover:text-white;
   }
+
   .sidebar-link.active {
     @apply bg-accent-blue/10 text-accent-blue border border-accent-blue/20;
   }
@@ -87,18 +97,31 @@ body {
   .stat-card {
     @apply bg-dark-700 border border-dark-400/30 rounded-xl p-5 transition-all duration-300;
   }
+
   .stat-card:hover {
     @apply border-accent-blue/20 shadow-lg shadow-accent-blue/5;
   }
 
-  .table-dark { @apply w-full text-left; }
-  .table-dark th { @apply text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3 border-b border-dark-400/30; }
-  .table-dark td { @apply px-4 py-3 border-b border-dark-400/20 text-sm text-gray-300; }
-  .table-dark tr:hover td { @apply bg-dark-600/30; }
+  .table-dark {
+    @apply w-full text-left;
+  }
+
+  .table-dark th {
+    @apply text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3 border-b border-dark-400/30;
+  }
+
+  .table-dark td {
+    @apply px-4 py-3 border-b border-dark-400/20 text-sm text-gray-300;
+  }
+
+  .table-dark tr:hover td {
+    @apply bg-dark-600/30;
+  }
 
   .modal-overlay {
     @apply fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4;
   }
+
   .modal-content {
     @apply bg-dark-700 border border-dark-400/40 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto
     shadow-2xl shadow-black/50 animate-slide-up;
@@ -109,63 +132,13 @@ body {
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-accent-blue via-accent-cyan to-accent-purple;
   }
+
   .border-gradient {
     border-image: linear-gradient(to right, #3b82f6, #06b6d4, #8b5cf6) 1;
   }
 }
 
-/* ============================================
-   FREEZE / ICE EFFECT ON BUTTON CLICK
-   ============================================ */
-.btn-primary::after,
-.btn-secondary::after,
-.btn-danger::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at var(--freeze-x, 50%) var(--freeze-y, 50%),
-    rgba(200, 230, 255, 0.5) 0%,
-    rgba(150, 200, 255, 0.3) 30%,
-    transparent 70%);
-  opacity: 0;
-  transition: opacity 0.1s ease;
-  pointer-events: none;
-  z-index: 10;
-  border-radius: inherit;
-}
-
-.btn-primary.freezing::after,
-.btn-secondary.freezing::after,
-.btn-danger.freezing::after {
-  opacity: 1;
-  animation: freeze-flash 0.6s ease-out forwards;
-}
-
-.btn-primary.freezing,
-.btn-secondary.freezing,
-.btn-danger.freezing {
-  animation: freeze-shake 0.4s ease-out;
-  filter: brightness(1.3) saturate(0.5);
-}
-
-@keyframes freeze-flash {
-  0% { opacity: 0.9; }
-  30% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-@keyframes freeze-shake {
-  0% { transform: scale(0.96); }
-  15% { transform: scale(0.97) translateX(-1px); }
-  30% { transform: scale(0.98) translateX(1px); }
-  50% { transform: scale(0.99) translateX(-0.5px); }
-  70% { transform: scale(0.995) translateX(0.5px); }
-  100% { transform: scale(1); filter: brightness(1) saturate(1); }
-}
-
-/* ============================================
-   MARQUEE / RUNNING TEXT
-   ============================================ */
+/* Animasi marquee */
 .marquee-container {
   overflow: hidden;
   white-space: nowrap;
@@ -180,103 +153,7 @@ body {
   animation-play-state: paused;
 }
 
-@keyframes marquee {
-  0% { transform: translateX(0%); }
-  100% { transform: translateX(-50%); }
-}
-
-.marquee-reverse .marquee-content {
-  animation: marquee-reverse 30s linear infinite;
-}
-
-@keyframes marquee-reverse {
-  0% { transform: translateX(-50%); }
-  100% { transform: translateX(0%); }
-}
-
-.marquee-slow .marquee-content {
-  animation-duration: 40s;
-}
-
-/* ============================================
-   FIREFLY / KUNANG-KUNANG EFFECT
-   ============================================ */
-.firefly-container {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  overflow: hidden;
-}
-
-.firefly {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #fde68a;
-  box-shadow:
-    0 0 6px 2px rgba(253, 230, 138, 0.6),
-    0 0 12px 4px rgba(253, 230, 138, 0.3),
-    0 0 20px 6px rgba(253, 230, 138, 0.1);
-  animation: firefly-fall linear infinite, firefly-glow ease-in-out infinite;
-  opacity: 0;
-}
-
-.firefly.blue {
-  background: #93c5fd;
-  box-shadow:
-    0 0 6px 2px rgba(147, 197, 253, 0.6),
-    0 0 12px 4px rgba(147, 197, 253, 0.3),
-    0 0 20px 6px rgba(147, 197, 253, 0.1);
-}
-
-.firefly.cyan {
-  background: #67e8f9;
-  box-shadow:
-    0 0 6px 2px rgba(103, 232, 249, 0.6),
-    0 0 12px 4px rgba(103, 232, 249, 0.3),
-    0 0 20px 6px rgba(103, 232, 249, 0.1);
-}
-
-.firefly.purple {
-  background: #c4b5fd;
-  box-shadow:
-    0 0 6px 2px rgba(196, 181, 253, 0.6),
-    0 0 12px 4px rgba(196, 181, 253, 0.3),
-    0 0 20px 6px rgba(196, 181, 253, 0.1);
-}
-
-.firefly.green {
-  background: #86efac;
-  box-shadow:
-    0 0 6px 2px rgba(134, 239, 172, 0.5),
-    0 0 12px 4px rgba(134, 239, 172, 0.2);
-}
-
-@keyframes firefly-fall {
-  0% {
-    transform: translateY(-20px) translateX(0) rotate(0deg);
-    opacity: 0;
-  }
-  5% { opacity: 1; }
-  25% { transform: translateY(25vh) translateX(40px) rotate(90deg); }
-  50% { transform: translateY(50vh) translateX(-30px) rotate(180deg); opacity: 0.8; }
-  75% { transform: translateY(75vh) translateX(50px) rotate(270deg); }
-  95% { opacity: 0.6; }
-  100% { transform: translateY(105vh) translateX(-20px) rotate(360deg); opacity: 0; }
-}
-
-@keyframes firefly-glow {
-  0%, 100% { opacity: 0.3; transform: scale(0.8); }
-  25% { opacity: 1; transform: scale(1.2); }
-  50% { opacity: 0.6; transform: scale(0.9); }
-  75% { opacity: 1; transform: scale(1.1); }
-}
-
-/* ============================================
-   PRODUCT CARD GLOW
-   ============================================ */
+/* Efek glow untuk card produk */
 .product-card-glow {
   position: relative;
 }
@@ -296,16 +173,15 @@ body {
   opacity: 1;
 }
 
-/* ============================================
-   BACKGROUNDS & PATTERNS
-   ============================================ */
+/* Background pattern */
 .bg-grid-pattern {
-  background-image:
+  background-image: 
     linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
   background-size: 50px 50px;
 }
 
+/* Background glow blobs */
 .glow-blob {
   position: absolute;
   border-radius: 50%;
@@ -314,223 +190,41 @@ body {
   pointer-events: none;
 }
 
-/* ============================================
-   HERO SECTION EFFECTS
-   ============================================ */
-.hero-shimmer {
-  background: linear-gradient(
-    110deg,
-    transparent 25%,
-    rgba(255,255,255,0.03) 37%,
-    transparent 63%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 3s ease-in-out infinite;
-}
-
-@keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-.hero-float {
-  animation: hero-float 6s ease-in-out infinite;
-}
-
-@keyframes hero-float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-}
-
-.hero-glow-ring {
-  animation: glow-ring-rotate 8s linear infinite;
-}
-
-@keyframes glow-ring-rotate {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* ============================================
-   SCROLL INDICATOR
-   ============================================ */
-.scroll-indicator {
-  animation: scroll-bounce 2s ease-in-out infinite;
-}
-
-@keyframes scroll-bounce {
-  0%, 100% { transform: translateY(0); opacity: 1; }
-  50% { transform: translateY(8px); opacity: 0.5; }
-}
-
-/* ============================================
-   BANNER EFFECTS
-   ============================================ */
-.banner-shine {
-  position: relative;
-  overflow: hidden;
-}
-
-.banner-shine::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255,255,255,0.05),
-    transparent
-  );
-  animation: banner-shine-move 4s ease-in-out infinite;
-}
-
-@keyframes banner-shine-move {
-  0% { left: -100%; }
-  50% { left: 100%; }
-  100% { left: 100%; }
-}
-
-/* ============================================
-   SECTION REVEAL ANIMATION
-   ============================================ */
-.reveal-section {
-  opacity: 0;
-  transform: translateY(30px);
-  transition: opacity 0.8s ease, transform 0.8s ease;
-}
-
-.reveal-section.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* ============================================
-   SERVER STATUS
-   ============================================ */
+/* Server status indicator */
 .server-online {
   @apply inline-flex items-center gap-1.5 text-green-400;
 }
+
 .server-online::before {
   content: '';
   @apply w-2 h-2 rounded-full bg-green-400 animate-pulse;
 }
+
 .server-offline {
   @apply inline-flex items-center gap-1.5 text-red-400;
 }
+
 .server-offline::before {
   content: '';
   @apply w-2 h-2 rounded-full bg-red-400;
 }
 
-/* ============================================
-   QR & LOADING
-   ============================================ */
+/* QR Code container */
 .qr-container {
   @apply bg-white p-4 rounded-xl inline-block;
 }
 
+/* Loading spinner */
 .spinner {
   @apply w-8 h-8 border-2 border-accent-blue/20 border-t-accent-blue rounded-full animate-spin;
 }
 
-.polling-indicator {
-  animation: polling-pulse 2s ease-in-out infinite;
-}
-
+/* Polling animation */
 @keyframes polling-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
 
-/* ============================================
-   LANDING PAGE SPECIFIC
-   ============================================ */
-.landing-gradient-text {
-  background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 40%, #8b5cf6 70%, #ec4899 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  background-size: 200% auto;
-  animation: gradient-shift 4s ease-in-out infinite;
+.polling-indicator {
+  animation: polling-pulse 2s ease-in-out infinite;
 }
-
-@keyframes gradient-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.landing-badge-glow {
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.2), 0 0 30px rgba(59, 130, 246, 0.1);
-}
-
-.orbit-ring {
-  border: 1px solid rgba(59,130,246,0.1);
-  border-radius: 50%;
-  position: absolute;
-  animation: orbit-pulse 4s ease-in-out infinite;
-}
-
-.orbit-ring:nth-child(2) {
-  animation-delay: -1.3s;
-  border-color: rgba(139,92,246,0.1);
-}
-
-.orbit-ring:nth-child(3) {
-  animation-delay: -2.6s;
-  border-color: rgba(6,182,212,0.1);
-}
-
-@keyframes orbit-pulse {
-  0%, 100% { transform: scale(1); opacity: 0.5; }
-  50% { transform: scale(1.05); opacity: 1; }
-}
-
-.orbit-dot {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #3b82f6;
-  box-shadow: 0 0 10px rgba(59,130,246,0.8);
-  animation: orbit-dot-move 6s linear infinite;
-}
-
-@keyframes orbit-dot-move {
-  0% { transform: rotate(0deg) translateX(var(--orbit-r, 120px)) rotate(0deg); }
-  100% { transform: rotate(360deg) translateX(var(--orbit-r, 120px)) rotate(-360deg); }
-}
-
-.products-enter {
-  animation: products-reveal 0.6s ease-out;
-}
-
-@keyframes products-reveal {
-  0% { opacity: 0; transform: translateY(40px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-
-.filter-active {
-  box-shadow: 0 0 15px rgba(59,130,246,0.4), 0 0 30px rgba(59,130,246,0.15);
-}
-
-@keyframes fadeIn {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
-}
-
-@keyframes slideUp {
-  0% { opacity: 0; transform: translateY(20px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-out;
-}
-
-.animate-slide-up {
-  animation: slideUp 0.4s ease-out;
-  }

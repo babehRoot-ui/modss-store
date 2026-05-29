@@ -2,17 +2,19 @@ import { NextResponse } from 'next/server';
 
 export function middleware(request) {
   const { pathname } = request.nextUrl;
-  const sessionToken = request.cookies.get('admin_session')?.value;
+  const adminToken = request.cookies.get('admin_token')?.value;
 
-  if (pathname.startsWith('/admin/dashboard') && !sessionToken) {
+  if (pathname.startsWith('/admin/dashboard') && !adminToken) {
     return NextResponse.redirect(new URL('/admin/login', request.url));
   }
-  if (pathname === '/admin/login' && sessionToken) {
+
+  if (pathname === '/admin/login' && adminToken) {
     return NextResponse.redirect(new URL('/admin/dashboard', request.url));
   }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/admin/dashboard/:path*', '/admin/login']
+  matcher: ['/admin/dashboard/:path*', '/admin/login'],
 };

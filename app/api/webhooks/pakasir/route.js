@@ -1,45 +1,73 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { getOrderByOrderId, updateOrder, createTransaction } from '@/lib/supabase';
+import { deliverProduct } from '@/lib/delivery';
 
 export async function POST(request) {
   try {
     const body = await request.json();
-    const externalId = body?.data?.external_id || body?.external_id;
-    const status = body?.data?.status || body?.status;
+    console.log('Pakasir Webhook received:', JSON.stringify(body));
 
-    if (!externalId) return NextResponse.json({ error: 'Missing external_id' }, { status: 400 });
+    // Pakasir biasanya mengirim order_id dan status
+    const orderId = body.order_id || body.data?.order_id;
+    const status = body.status || body.data?.status;
+
+    if (!orderId || !status) {
+      return NextResponse.json({ error: 'Missing order_id or status' }, { status: 400 });
+    }
 
     // Cari order
-    const { data: order, error } = await supabaseAdmin.from('orders').select('*, products(category)').eq('order_id', externalId).single();
-    if (error || !order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    const order = await getOrderByOrderId(orderId);
+    if (!order) {
+      console.error(`Order ${orderId} not found`);
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
 
+    // Update transaksi log
+    try {
+      await createTransaction({
+        order_id: orderId,
+        pakasir_id: body.id || body.data?.id || null,
+        amount: order.product_price,
+        status: status,
+        raw_response: body,
+      });
+    } catch {}
+
+    // Jika pembayaran berhasil
     if (status === 'paid' || status === 'success' || status === 'settlement') {
-      // Update order status
-      await supabaseAdmin.from('orders').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('order_id', externalId);
-      await supabaseAdmin.from('transactions').update({ status: 'paid', raw_response: body }).eq('order_id', externalId);
-
-      // Trigger delivery
-      const category = order.products?.category || 'script';
-      const baseUrl = request.headers.get('host') || '';
-      const protocol = request.headers.get('x-forwarded-proto') || 'https';
-
-      try {
-        await fetch(`${protocol}://${baseUrl}/api/delivery/${category}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ order_id: externalId })
+      if (order.status === 'pending') {
+        // Update status ke paid
+        await updateOrder(orderId, {
+          status: 'paid',
+          paid_at: new Date().toISOString(),
         });
-      } catch (delErr) {
-        console.error('Webhook delivery error:', delErr.message);
+
+        // Proses delivery secara async (tidak blocking response webhook)
+        // Gunakan setTimeout agar webhook response cepat
+        setTimeout(async () => {
+          try {
+            await deliverProduct(orderId);
+          } catch (err) {
+            console.error(`Delivery failed for ${orderId}:`, err);
+            await updateOrder(orderId, {
+              status: 'failed',
+              delivery_data: { error: err.message },
+            });
+          }
+        }, 1000);
       }
-    } else if (status === 'failed' || status === 'expired') {
-      await supabaseAdmin.from('orders').update({ status: 'failed' }).eq('order_id', externalId);
-      await supabaseAdmin.from('transactions').update({ status: 'failed', raw_response: body }).eq('order_id', externalId);
+    }
+
+    // Jika pembayaran gagal/expired
+    if (status === 'expired' || status === 'failed' || status === 'cancelled') {
+      if (order.status === 'pending') {
+        await updateOrder(orderId, { status: status === 'expired' ? 'expired' : 'failed' });
+      }
     }
 
     return NextResponse.json({ success: true });
-  } catch (err) {
-    console.error('Webhook error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (error) {
+    console.error('Webhook Error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

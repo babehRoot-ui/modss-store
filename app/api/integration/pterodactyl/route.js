@@ -1,99 +1,69 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
-import { PterodactylAPI } from '@/lib/pterodactyl';
-import { verifySessionToken } from '@/lib/auth';
-
-async function checkAuth(request) {
-  const token = request.cookies.get('admin_session')?.value;
-  return token && verifySessionToken(token);
-}
+import { verifyAdminToken } from '@/lib/auth';
+import { pteroRequest, getNests, getEggs, getNodes, getPterodactylServers, getServerResources } from '@/lib/pterodactyl';
 
 export async function POST(request) {
-  if (!(await checkAuth(request))) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
+    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    if (!token || !verifyAdminToken(token)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
-    const { action, api_key_id } = body;
+    const { action, domain, api_key, client_token, nest_id, server_id } = body;
 
-    if (!api_key_id) {
-      return NextResponse.json({ error: 'api_key_id wajib diisi' }, { status: 400 });
+    if (!domain || !api_key) {
+      return NextResponse.json({ error: 'Domain dan API Key wajib diisi' }, { status: 400 });
     }
 
-    // Fetch API key dari database
-    const { data: keyData, error: keyErr } = await supabaseAdmin.from('api_keys').select('*').eq('id', api_key_id).eq('is_active', true).single();
-    if (keyErr || !keyData) {
-      return NextResponse.json({ error: 'API Key tidak ditemukan' }, { status: 404 });
-    }
-
-    const ptero = new PterodactylAPI(keyData.domain, keyData.api_key, keyData.client_token || '');
+    let result;
 
     switch (action) {
-      case 'list_servers': {
-        // Gunakan PLTC (client token) untuk list server
-        if (!keyData.client_token) {
-          return NextResponse.json({ error: 'PLTC (Client Token) tidak tersedia untuk API key ini' }, { status: 400 });
+      case 'servers':
+        // Pakai client_token untuk list server client
+        if (!client_token) {
+          return NextResponse.json({ error: 'Client Token (PLTC) diperlukan' }, { status: 400 });
         }
-        const servers = await ptero.clientServers();
-        // Fetch resources untuk setiap server
-        const serversWithResources = [];
-        const serverList = servers?.data || [];
-        for (const s of serverList) {
-          try {
-            const res = await ptero.clientServerResources(s.attributes.identifier);
-            serversWithResources.push({
-              ...s,
-              attributes: {
-                ...s.attributes,
-                resources: res?.attributes || s.attributes?.resources
-              }
-            });
-          } catch {
-            serversWithResources.push(s);
-          }
+        result = await getPterodactylServers(domain, client_token);
+        break;
+
+      case 'server_resources':
+        if (!client_token || !server_id) {
+          return NextResponse.json({ error: 'Client Token dan Server ID diperlukan' }, { status: 400 });
         }
-        return NextResponse.json({ servers: serversWithResources });
-      }
+        result = await getServerResources(domain, client_token, server_id);
+        break;
 
-      case 'list_nodes': {
-        const nodes = await ptero.getNodes();
-        return NextResponse.json({ nodes });
-      }
+      case 'nests':
+        result = await getNests(domain, api_key);
+        break;
 
-      case 'list_allocations': {
-        const { node_id } = body;
-        if (!node_id) return NextResponse.json({ error: 'node_id wajib diisi' }, { status: 400 });
-        const allocs = await ptero.getAllocations(node_id);
-        return NextResponse.json({ allocations: allocs });
-      }
+      case 'eggs':
+        if (!nest_id) {
+          return NextResponse.json({ error: 'Nest ID diperlukan' }, { status: 400 });
+        }
+        result = await getEggs(domain, api_key, nest_id);
+        break;
 
-      case 'list_nests': {
-        const nests = await ptero.getNests();
-        return NextResponse.json({ nests });
-      }
+      case 'nodes':
+        result = await getNodes(domain, api_key);
+        break;
 
-      case 'list_eggs': {
-        const { nest_id } = body;
-        if (!nest_id) return NextResponse.json({ error: 'nest_id wajib diisi' }, { status: 400 });
-        const eggs = await ptero.getEggs(nest_id);
-        return NextResponse.json({ eggs });
-      }
-
-      case 'server_details': {
-        const { server_id } = body;
-        if (!server_id) return NextResponse.json({ error: 'server_id wajib diisi' }, { status: 400 });
-        if (!keyData.client_token) return NextResponse.json({ error: 'PLTC tidak tersedia' }, { status: 400 });
-        const details = await ptero.clientServerDetails(server_id);
-        return NextResponse.json({ server: details });
-      }
+      case 'test':
+        // Test connection
+        if (client_token) {
+          result = await pteroRequest(domain, client_token, '/client');
+        } else {
+          result = await pteroRequest(domain, api_key, '/application/servers?per_page=1');
+        }
+        return NextResponse.json({ success: true, message: 'Koneksi berhasil', data: result });
 
       default:
-        return NextResponse.json({ error: `Action "${action}" tidak dikenali` }, { status: 400 });
+        return NextResponse.json({ error: `Action tidak dikenali: ${action}` }, { status: 400 });
     }
 
-  } catch (err) {
-    console.error('Pterodactyl integration error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ success: true, data: result });
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

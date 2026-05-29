@@ -1,87 +1,151 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getAllBanners, createBanner, deleteBanner } from '@/lib/supabase';
 
 export default function BannersPage() {
   const [banners, setBanners] = useState([]);
-  const [form, setForm] = useState({ image_url:'', title:'', link:'', order_position:'0', is_active:true });
-  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [form, setForm] = useState({ image_url: '', title: '', link: '', order_position: '0' });
 
-  const load = async () => {
-    const { data } = await supabase.from('banners').select('*').order('order_position', { ascending: true });
-    setBanners(data || []);
-  };
+  useEffect(() => { loadBanners(); }, []);
 
-  useEffect(() => { load(); }, []);
+  async function loadBanners() {
+    try {
+      const data = await getAllBanners();
+      setBanners(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  const handleSave = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
-    if (!form.image_url) return alert('Image URL wajib diisi');
-    setSaving(true);
-    await supabase.from('banners').insert({ ...form, order_position: parseInt(form.order_position), is_active: Boolean(form.is_active) });
-    setForm({ image_url:'', title:'', link:'', order_position:'0', is_active:true });
-    setSaving(false); load();
-  };
+    setFormLoading(true);
+    setFormError('');
+    try {
+      await createBanner({
+        image_url: form.image_url,
+        title: form.title || null,
+        link: form.link || null,
+        order_position: parseInt(form.order_position) || 0,
+        is_active: true,
+      });
+      setShowForm(false);
+      setForm({ image_url: '', title: '', link: '', order_position: '0' });
+      loadBanners();
+    } catch (err) {
+      setFormError(err.message);
+    } finally {
+      setFormLoading(false);
+    }
+  }
 
-  const handleDelete = async (id) => {
+  async function handleDelete(id) {
     if (!confirm('Hapus banner ini?')) return;
-    await supabase.from('banners').delete().eq('id', id);
-    load();
-  };
+    try {
+      await deleteBanner(id);
+      loadBanners();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
 
-  const toggleActive = async (b) => {
-    await supabase.from('banners').update({ is_active: !b.is_active }).eq('id', b.id);
-    load();
-  };
+  if (loading) {
+    return <div className="flex justify-center py-20"><div className="spinner" /></div>;
+  }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="glass-card p-6">
-        <h3 className="text-sm font-semibold text-white mb-4">Tambah Banner</h3>
-        <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="md:col-span-2">
-            <label className="block text-xs text-gray-400 mb-1">Image URL *</label>
-            <input value={form.image_url} onChange={e => setForm({...form, image_url: e.target.value})} className="input-field" required placeholder="https://..." />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Judul</label>
-            <input value={form.title} onChange={e => setForm({...form, title: e.target.value})} className="input-field" />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Link</label>
-            <input value={form.link} onChange={e => setForm({...form, link: e.target.value})} className="input-field" placeholder="https://..." />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Urutan</label>
-            <input type="number" value={form.order_position} onChange={e => setForm({...form, order_position: e.target.value})} className="input-field" />
-          </div>
-          <div className="flex items-end">
-            <button type="submit" disabled={saving} className="btn-primary text-sm">{saving ? 'Menyimpan...' : 'Tambah Banner'}</button>
-          </div>
-        </form>
+    <div className="space-y-5 animate-fade-in">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500">{banners.length} banner</p>
+        <button onClick={() => { setFormError(''); setShowForm(true); }} className="btn-primary text-sm flex items-center gap-2">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+          Tambah Banner
+        </button>
       </div>
 
-      {banners.length === 0 ? (
-        <div className="glass-card p-8 text-center text-gray-500">Belum ada banner.</div>
-      ) : (
-        <div className="space-y-3">
-          {banners.map(b => (
-            <div key={b.id} className="glass-card p-4 flex items-center gap-4">
-              <img src={b.image_url} alt={b.title || ''} className="w-32 h-20 rounded-xl object-cover bg-dark-700 flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-white text-sm">{b.title || 'Tanpa Judul'}</p>
-                <p className="text-xs text-gray-500 truncate">{b.link || '-'}</p>
-                <p className="text-xs text-gray-400 mt-1">Urutan: {b.order_position} | {b.is_active ? 'Aktif' : 'Nonaktif'}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {banners.map((banner, idx) => (
+          <div key={banner.id} className="card-dark overflow-hidden group">
+            <div className="relative aspect-[21/9] bg-dark-800 overflow-hidden">
+              {banner.image_url ? (
+                <img src={banner.image_url} alt={banner.title || 'Banner'} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-r from-accent-blue/20 to-accent-purple/20 flex items-center justify-center">
+                  <span className="text-gray-500 text-sm">No Image</span>
+                </div>
+              )}
+              <div className="absolute top-2 left-2">
+                <span className="text-[10px] bg-black/60 text-white px-2 py-0.5 rounded-full backdrop-blur-sm">
+                  #{idx + 1}
+                </span>
               </div>
-              <div className="flex gap-2 flex-shrink-0">
-                <button onClick={() => toggleActive(b)} className="btn-secondary text-xs py-1.5 px-3">{b.is_active ? 'Nonaktif' : 'Aktifkan'}</button>
-                <button onClick={() => handleDelete(b.id)} className="btn-danger text-xs py-1.5 px-3">Hapus</button>
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <button onClick={() => handleDelete(banner.id)} className="btn-danger text-xs">Hapus</button>
               </div>
             </div>
-          ))}
+            <div className="p-3">
+              <p className="font-medium text-sm text-white truncate">{banner.title || 'Tanpa Judul'}</p>
+              {banner.link && (
+                <p className="text-xs text-gray-500 truncate mt-0.5">{banner.link}</p>
+              )}
+            </div>
+          </div>
+        ))}
+
+        {banners.length === 0 && (
+          <div className="col-span-full text-center py-16">
+            <div className="text-4xl mb-3 opacity-30">🖼️</div>
+            <p className="text-sm text-gray-500">Belum ada banner</p>
+          </div>
+        )}
+      </div>
+
+      {/* Add Modal */}
+      {showForm && (
+        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="p-5 border-b border-dark-400/30 flex items-center justify-between">
+              <h3 className="font-bold">Tambah Banner</h3>
+              <button onClick={() => setShowForm(false)} className="w-8 h-8 rounded-lg bg-dark-500 flex items-center justify-center text-gray-400 hover:text-white">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">Image URL *</label>
+                <input type="url" className="input-dark" placeholder="https://..." value={form.image_url} onChange={e => setForm(p => ({...p, image_url: e.target.value}))} required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">Judul</label>
+                <input type="text" className="input-dark" placeholder="Judul banner" value={form.title} onChange={e => setForm(p => ({...p, title: e.target.value}))} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">Link (Opsional)</label>
+                <input type="url" className="input-dark" placeholder="https://..." value={form.link} onChange={e => setForm(p => ({...p, link: e.target.value}))} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">Urutan</label>
+                <input type="number" className="input-dark" value={form.order_position} onChange={e => setForm(p => ({...p, order_position: e.target.value}))} min="0" />
+                <p className="text-xs text-gray-500 mt-1">Angka kecil = tampil lebih dulu</p>
+              </div>
+              {formError && <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 text-sm text-red-400">{formError}</div>}
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowForm(false)} className="btn-secondary flex-1">Batal</button>
+                <button type="submit" disabled={formLoading} className="btn-primary flex-1 disabled:opacity-50">
+                  {formLoading ? 'Menyimpan...' : 'Simpan'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
   );
-                       }
+        }
